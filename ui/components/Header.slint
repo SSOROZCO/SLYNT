@@ -1,0 +1,246 @@
+import { HorizontalBox } from "std-widgets.slint";
+import { AudioTheme } from "../theme/Theme.slint";
+
+export component Header inherits Rectangle {
+    height: 56px;
+    background: AudioTheme.background;
+
+    callback open-folder();
+    callback open-library();
+    callback open-about();
+    callback search(string);
+    callback file-menu-toggle();
+
+    in-out property <string> search-text: "";
+    in property <bool> file-menu-open: false;
+
+    HorizontalBox {
+        padding-left: 16px;
+        padding-right: 12px;
+        spacing: 12px;
+        alignment: center;
+
+        // ========================================================
+        // FILE
+        // ========================================================
+
+        Rectangle {
+            width: 72px;
+            height: 38px;
+
+            background:
+                file-touch.has-hover || root.file-menu-open
+                    ? AudioTheme.glass-hover
+                    : transparent;
+
+            border-radius: AudioTheme.radius-default;
+
+            Text {
+                text: "File";
+
+                color:
+                    file-touch.has-hover || root.file-menu-open
+                        ? AudioTheme.accent
+                        : AudioTheme.text;
+
+                font-size: 13px;
+                font-weight: 600;
+
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            file-touch := TouchArea {
+                clicked => {
+                    root.file-menu-toggle();
+                }
+
+                mouse-cursor: pointer;
+            }
+        }
+
+        // ========================================================
+        // SEARCH
+        // ========================================================
+
+        Rectangle {
+            width: 300px;
+            height: 38px;
+
+            background: AudioTheme.glass;
+            border-radius: AudioTheme.radius-default;
+            border-width: 1px;
+
+            border-color:
+                search-touch.has-hover ||
+                search-input.has-focus
+                    ? AudioTheme.accent
+                    : AudioTheme.glass-border;
+
+            clip: true;
+
+            HorizontalBox {
+                padding-left: 12px;
+                padding-right: 8px;
+                spacing: 8px;
+
+                Image {
+                    source: @image-url("../icons/search.png");
+                    width: 16px;
+                    height: 16px;
+                    image-fit: ImageFit.contain;
+                    colorize: AudioTheme.text-faint;
+                }
+
+                search-input := TextInput {
+                    horizontal-stretch: 1;
+                    text: root.search-text;
+                    font-size: 13px;
+                    color: AudioTheme.text;
+                    single-line: true;
+
+                    edited => {
+                        root.search-text = self.text;
+                        root.search(self.text);
+                    }
+                }
+            }
+
+            search-touch := TouchArea {
+                mouse-cursor: text;
+
+                clicked => {
+                    search-input.focus();
+                }
+            }
+        }
+
+        // ========================================================
+        // FLEXIBLE SPACE
+        // ========================================================
+
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+
+        // ========================================================
+        // LIBRARY
+        // ========================================================
+
+        Rectangle {
+            width: 118px;
+            height: 38px;
+
+            background:
+                lib-touch.has-hover
+                    ? AudioTheme.glass-hover
+                    : AudioTheme.glass;
+
+            border-radius: AudioTheme.radius-default;
+            border-width: 1px;
+            border-color: AudioTheme.glass-border;
+
+            HorizontalBox {
+                spacing: 8px;
+                alignment: center;
+
+                padding-left: 12px;
+                padding-right: 12px;
+
+                Image {
+                    source: @image-url("../icons/library.png");
+                    width: 16px;
+                    height: 16px;
+                    image-fit: ImageFit.contain;
+                    colorize: AudioTheme.text-muted;
+                }
+
+                Text {
+                    text: "Library";
+                    color: AudioTheme.text;
+                    font-size: 12px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+            }
+
+            lib-touch := TouchArea {
+                clicked => {
+                    root.open-library();
+                }
+
+                mouse-cursor: pointer;
+            }
+        }
+
+        // ========================================================
+        // ADD / FOLDER
+        // ========================================================
+
+        Rectangle {
+            width: 38px;
+            height: 38px;
+
+            background:
+                add-touch.has-hover
+                    ? AudioTheme.glass-hover
+                    : AudioTheme.glass;
+
+            border-radius: AudioTheme.radius-default;
+            border-width: 1px;
+
+            border-color:
+                add-touch.has-hover
+                    ? AudioTheme.accent
+                    : AudioTheme.glass-border;
+
+            if add-touch.pressed : Image {
+                source: @image-url("../icons/folder-open.png");
+
+                width: 17px;
+                height: 17px;
+
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+
+                image-fit: ImageFit.contain;
+                colorize: AudioTheme.accent;
+            }
+
+            if !add-touch.pressed : Image {
+                source: @image-url("../icons/folder.png");
+
+                width: 17px;
+                height: 17px;
+
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+
+                image-fit: ImageFit.contain;
+
+                colorize:
+                    add-touch.has-hover
+                        ? AudioTheme.accent
+                        : AudioTheme.text;
+            }
+
+            add-touch := TouchArea {
+                clicked => {
+                    root.open-folder();
+                }
+
+                mouse-cursor: pointer;
+            }
+        }
+    }
+
+    // ========================================================
+    // DIVIDER
+    // ========================================================
+
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: AudioTheme.border;
+    }
+}

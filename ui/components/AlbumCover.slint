@@ -1,0 +1,145 @@
+import { VerticalBox } from "std-widgets.slint";
+import { AudioTheme } from "../theme/Theme.slint";
+
+export component AlbumCover inherits Rectangle {
+    in property <image> cover;
+    in property <string> title;
+    in property <string> artist;
+    in property <string> album;
+    in property <bool> is-playing;
+
+    property <image> vinyl-image: @image-url("../../data/pictures/vinyl.png");
+    property <image> tonearm-image: @image-url("../../data/pictures/tonearm.png");
+
+    property <angle> vinyl-rotation: 0deg;
+    property <bool> should-spin: is-playing;
+
+    background: AudioTheme.glass;
+    border-radius: AudioTheme.radius-default;
+    border-width: 1px;
+    border-color: AudioTheme.glass-border;
+    clip: true;
+    preferred-width: 320px;
+    width: 320px;
+
+    callback open-detail();
+
+    animate vinyl-rotation { duration: 4000ms; easing: linear; }
+
+    Timer {
+        interval: 4000ms;
+        running: true;
+        triggered => { if (root.should-spin) { root.vinyl-rotation = root.vinyl-rotation + 360deg; } }
+    }
+
+    VerticalBox {
+        spacing: 12px; //
+        padding: 12px; //
+
+        // ===== PORTADA SUSPENDIDA CON SOMBRA =====
+        Rectangle {
+            width: 296px; // 320 - 12*2 padding
+            height: 296px;
+            clip: true;
+            background: AudioTheme.surface;
+            border-radius: AudioTheme.radius-default;
+            drop-shadow-blur: 24px;
+            drop-shadow-color: #00000088;
+            drop-shadow-offset-y: 12px;
+            drop-shadow-offset-x: 0px;
+
+            Image {
+                source: root.cover;
+                width: 100%;
+                height: 100%;
+                visible: root.cover.width > 0;
+                image-fit: ImageFit.cover;
+            }
+
+            Rectangle {
+                width: 100%;
+                height: 100%;
+                visible: root.cover.width == 0;
+                background: AudioTheme.surface;
+
+                Image {
+                    source: root.vinyl-image;
+                    width: 220px;
+                    height: 220px;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2 - 10px;
+                    rotation-angle: root.vinyl-rotation;
+                    rotation-origin-x: 110px;
+                    rotation-origin-y: 110px;
+                }
+
+                Image {
+                    source: root.tonearm-image;
+                    width: 240px;
+                    height: 240px;
+                    x: (parent.width - self.width) / 2 + 30px;
+                    y: (parent.height - self.height) / 2 - 30px;
+                    image-fit: ImageFit.contain;
+                }
+
+                VerticalBox {
+                    y: parent.height - 70px;
+                    width: 100%;
+                    alignment: center;
+                    spacing: 2px;
+
+                    Text {
+                        text: root.title != "" ? root.title : "No Music";
+                        color: AudioTheme.text;
+                        font-size: AudioTheme.font-title;
+                        font-weight: 600;
+                        horizontal-alignment: center;
+                        overflow: elide;
+                    }
+
+                    Text {
+                        text: root.artist != "" ? root.artist : "Drop your music here";
+                        color: AudioTheme.text-muted;
+                        font-size: AudioTheme.font-small;
+                        horizontal-alignment: center;
+                        overflow: elide;
+                    }
+                }
+            }
+
+            TouchArea {
+                clicked => { root.open-detail(); }
+                mouse-cursor: pointer;
+            }
+        }
+
+        // ===== INFO ABAJO DE LA SOMBRA =====
+        VerticalBox {
+            padding-top: 4px;
+            padding-left: AudioTheme.spacing-md;
+            padding-right: AudioTheme.spacing-md;
+            spacing: 2px;
+
+            Text {
+                text: root.title != "" ? root.title : "No Music Loaded";
+                color: AudioTheme.text;
+                font-size: AudioTheme.font-title;
+                font-weight: 600;
+                overflow: elide;
+            }
+
+            Text {
+                text: root.artist != "" ? root.artist : "Unknown Artist";
+                color: AudioTheme.text-secondary;
+                overflow: elide;
+            }
+
+            Text {
+                text: root.album != "" ? root.album : "—";
+                color: AudioTheme.text-muted;
+                font-size: AudioTheme.font-small;
+                overflow: elide;
+            }
+        }
+    }
+}

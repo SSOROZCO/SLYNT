@@ -1,0 +1,420 @@
+import { VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { PlayerState } from "../state/PlayerState.slint";
+import { AudioTheme } from "../theme/Theme.slint";
+
+export component DACPanel inherits Rectangle {
+    in property <string> output-mode;
+    callback set-output-mode(string);
+
+    // ===== PROPIEDADES DERIVADAS =====
+    pure function parse-khz(s: string) -> float {
+        if s == "44.1 kHz" { return 44.1; }
+        if s == "48.0 kHz" { return 48.0; }
+        if s == "88.2 kHz" { return 88.2; }
+        if s == "96.0 kHz" { return 96.0; }
+        if s == "176.4 kHz" { return 176.4; }
+        if s == "192.0 kHz" { return 192.0; }
+        if s == "352.8 kHz" { return 352.8; }
+        if s == "384.0 kHz" { return 384.0; }
+        if s == "705.6 kHz" { return 705.6; }
+        if s == "768.0 kHz" { return 768.0; }
+        if s == "44 kHz" { return 44.0; }
+        if s == "48 kHz" { return 48.0; }
+        if s == "96 kHz" { return 96.0; }
+        if s == "192 kHz" { return 192.0; }
+        if s == "-- kHz" { return 0.0; }
+        if s == "" { return 0.0; }
+        return 0.0;
+    }
+
+    property <float> rate-khz: parse-khz(PlayerState.samplerate);
+    property <bool> is-dsd: PlayerState.codec == "DSD" || PlayerState.codec == "DSF" || PlayerState.codec == "DFF" || PlayerState.original-format != "";
+    property <bool> is-hires: !is-dsd && rate-khz >= 96.0;
+    property <bool> is-lossless: !is-dsd && !is-hires && rate-khz > 0.0;
+    property <bool> is-active: PlayerState.device != "";
+    property <bool> is-fallback: PlayerState.is-fallback;
+
+    // ===== LED SYSTEM =====
+    property <color> led-blue: #3B82F6;
+    property <color> led-green: #22C55E;
+    property <color> led-magenta: #E040FB;
+
+    property <string> led-mode: is-dsd ? "dsd" : is-hires ? "hi-res" : "48k";
+
+    // ===== ESTILO GLASS - UNIFICADO =====
+    background: AudioTheme.glass;
+    border-radius: AudioTheme.radius-default;
+    border-width: 1px;
+    border-color: AudioTheme.glass-border;
+    clip: true;
+
+    VerticalBox {
+        padding: AudioTheme.spacing-lg;
+        spacing: 0;
+
+        // ===== HEADER: OUTPUT DEVICE =====
+        VerticalBox {
+            spacing: AudioTheme.spacing-md;
+
+            Text {
+                text: "OUTPUT";
+                color: AudioTheme.text-faint;
+                font-size: AudioTheme.font-small;
+                letter-spacing: 1.2px;
+                font-weight: 600;
+            }
+
+            HorizontalBox {
+                spacing: AudioTheme.spacing-md;
+
+                Rectangle {
+                    width: 44px; height: 44px;
+                    background: AudioTheme.glass-hover;
+                    border-radius: AudioTheme.radius-sm;
+                    clip: true;
+
+                    Image {
+                        source: @image-url("../../assets/circuit-DAC-blue.png");
+                        width: 40px;
+                        height: 40px;
+                        image-fit: contain;
+                        x: 2px;
+                        y: 2px;
+                    }
+                }
+
+                VerticalBox {
+                    spacing: 2px;
+                    vertical-stretch: 1;
+
+                    Text {
+                        text: is-active ? PlayerState.dac : "No DAC";
+                        color: is-active ? AudioTheme.text : AudioTheme.text-faint;
+                        font-size: AudioTheme.font-title;
+                        font-weight: 600;
+                        overflow: elide;
+                        animate color { duration: AudioTheme.fast; }
+                    }
+
+                    Text {
+                        text: is-active ? PlayerState.device + " • " + PlayerState.backend : "Connect your DAC";
+                        color: AudioTheme.text-faint;
+                        font-size: AudioTheme.font-small;
+                        overflow: elide;
+                        opacity: is-active ? 0.7 : 0.4;
+                        animate opacity { duration: AudioTheme.fast; }
+                    }
+                }
+            }
+
+            // ===== MODE SELECTOR =====
+            Rectangle {
+                height: 28px;
+                border-radius: AudioTheme.radius-md;
+                background: AudioTheme.glass-hover;
+                border-width: 1px;
+                border-color: AudioTheme.glass-border;
+
+                HorizontalBox {
+                    padding: 2px;
+                    spacing: 2px;
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        border-radius: AudioTheme.radius-sm;
+                        background: output-mode == "auto" ? AudioTheme.accent : transparent;
+                        animate background { duration: AudioTheme.fast; }
+
+                        Text {
+                            text: "Auto";
+                            color: output-mode == "auto" ? AudioTheme.text : AudioTheme.text-faint;
+                            font-size: AudioTheme.font-small;
+                            font-weight: output-mode == "auto" ? 600 : 500;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                            animate color { duration: AudioTheme.fast; }
+                        }
+
+                        TouchArea {
+                            clicked => { root.set-output-mode("auto"); }
+                        }
+                    }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        border-radius: AudioTheme.radius-sm;
+                        background: output-mode == "exclusive" ? AudioTheme.accent : transparent;
+                        animate background { duration: AudioTheme.fast; }
+
+                        Text {
+                            text: "EXCLUSIVE";
+                            color: output-mode == "exclusive" ? AudioTheme.text : AudioTheme.text-faint;
+                            font-size: AudioTheme.font-small;
+                            font-weight: output-mode == "exclusive" ? 600 : 500;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                            animate color { duration: AudioTheme.fast; }
+                        }
+
+                        TouchArea {
+                            clicked => { root.set-output-mode("exclusive"); }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ===== SEPARADOR 1 =====
+        Rectangle {
+            height: 1px;
+            background: AudioTheme.glass-border;
+            opacity: is-active ? 1 : 0.3;
+            animate opacity { duration: AudioTheme.normal; }
+        }
+
+        // ===== SIGNAL PATH - ESTILO ROON =====
+        VerticalBox {
+            spacing: 6px;
+
+            Text {
+                text: "SIGNAL";
+                color: AudioTheme.text-faint;
+                font-size: AudioTheme.font-small;
+                letter-spacing: 1.2px;
+                font-weight: 600;
+            }
+
+            // Path técnico tipo Roon
+            Text {
+                text: PlayerState.signal-path;
+                color: is-fallback ? AudioTheme.text-secondary : AudioTheme.accent;
+                font-size: AudioTheme.font-body;
+                wrap: word-wrap;
+                opacity: is-active ? 1 : 0.3;
+                animate opacity { duration: AudioTheme.fast; }
+            }
+
+            // Badge principal: BIT PERFECT <-> PCM (claro para usuario)
+            Rectangle {
+                height: 24px;
+                border-radius: AudioTheme.radius-md;
+                background: PlayerState.bit-perfect ? AudioTheme.accent-bg : AudioTheme.glass-hover;
+                border-width: PlayerState.bit-perfect ? 1px : 0px;
+                border-color: AudioTheme.accent-border;
+                animate background { duration: AudioTheme.fast; }
+
+                Text {
+                    // CAMBIO CLAVE: BIT PERFECT automaticamente -> PCM
+                    text: PlayerState.bit-perfect ? "● BIT PERFECT" : "○ PCM";
+                    color: PlayerState.bit-perfect ? AudioTheme.accent : AudioTheme.text-faint;
+                    font-size: AudioTheme.font-small;
+                    font-weight: PlayerState.bit-perfect ? 600 : 400;
+                    letter-spacing: 0.8px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    animate color { duration: AudioTheme.fast; }
+                }
+            }
+
+            // Info extra solo cuando hay fallback - sutil, profesional
+            if !PlayerState.bit-perfect && is-active && PlayerState.original-format != "" : Text {
+                text: PlayerState.original-format + " → PCM • AUTO";
+                color: AudioTheme.text-faint;
+                font-size: 9px;
+                letter-spacing: 0.5px;
+                opacity: 0.6;
+                horizontal-alignment: center;
+            }
+        }
+
+        Rectangle { vertical-stretch: 1; }
+
+        // ===== SEPARADOR 2 =====
+        Rectangle {
+            height: 1px;
+            background: AudioTheme.glass-border;
+        }
+
+        // ===== LED INDICATORS + STREAM INFO =====
+        VerticalBox {
+            spacing: AudioTheme.spacing-sm;
+
+            HorizontalBox {
+                spacing: AudioTheme.spacing-md;
+                alignment: center;
+
+                // LED Lossless
+                VerticalBox {
+                    spacing: AudioTheme.spacing-xs;
+                    alignment: center;
+                    Rectangle {
+                        width: 20px; height: 20px;
+                        border-radius: AudioTheme.radius-md;
+                        background: led-mode == "48k" ? led-blue : AudioTheme.glass-hover;
+                        border-width: 1px;
+                        border-color: led-mode == "48k" ? led-blue : AudioTheme.glass-border;
+                        animate background { duration: AudioTheme.normal; }
+                        Rectangle {
+                            width: 8px; height: 8px;
+                            border-radius: 4px;
+                            background: led-blue.brighter(60%);
+                            opacity: led-mode == "48k" ? 1 : 0;
+                            animate opacity { duration: AudioTheme.normal; }
+                        }
+                        Rectangle {
+                            x: -4px; y: -4px;
+                            width: parent.width + 8px;
+                            height: parent.height + 8px;
+                            border-radius: 14px;
+                            background: led-blue;
+                            opacity: led-mode == "48k" ? 0.15 : 0;
+                            z: -1;
+                            animate opacity { duration: AudioTheme.normal; }
+                        }
+                    }
+                    Text {
+                        text: "Lossless";
+                        color: led-mode == "48k" ? led-blue : AudioTheme.text-faint;
+                        font-size: 7px;
+                        horizontal-alignment: center;
+                        animate color { duration: AudioTheme.normal; }
+                    }
+                }
+
+                // LED Hi-Res
+                VerticalBox {
+                    spacing: AudioTheme.spacing-xs;
+                    alignment: center;
+                    Rectangle {
+                        width: 20px; height: 20px;
+                        border-radius: AudioTheme.radius-md;
+                        background: led-mode == "hi-res" ? led-green : AudioTheme.glass-hover;
+                        border-width: 1px;
+                        border-color: led-mode == "hi-res" ? led-green : AudioTheme.glass-border;
+                        animate background { duration: AudioTheme.normal; }
+                        Rectangle {
+                            width: 8px; height: 8px;
+                            border-radius: 4px;
+                            background: led-green.brighter(60%);
+                            opacity: led-mode == "hi-res" ? 1 : 0;
+                            animate opacity { duration: AudioTheme.normal; }
+                        }
+                        Rectangle {
+                            x: -4px; y: -4px;
+                            width: parent.width + 8px;
+                            height: parent.height + 8px;
+                            border-radius: 14px;
+                            background: led-green;
+                            opacity: led-mode == "hi-res" ? 0.15 : 0;
+                            z: -1;
+                            animate opacity { duration: AudioTheme.normal; }
+                        }
+                    }
+                    Text {
+                        text: "Hi-Res";
+                        color: led-mode == "hi-res" ? led-green : AudioTheme.text-faint;
+                        font-size: 7px;
+                        horizontal-alignment: center;
+                        animate color { duration: AudioTheme.normal; }
+                    }
+                }
+
+                // LED DSD
+                VerticalBox {
+                    spacing: AudioTheme.spacing-xs;
+                    alignment: center;
+                    Rectangle {
+                        width: 20px; height: 20px;
+                        border-radius: AudioTheme.radius-md;
+                        background: led-mode == "dsd" ? led-magenta : AudioTheme.glass-hover;
+                        border-width: 1px;
+                        border-color: led-mode == "dsd" ? led-magenta : AudioTheme.glass-border;
+                        animate background { duration: AudioTheme.normal; }
+                        Rectangle {
+                            width: 8px; height: 8px;
+                            border-radius: 4px;
+                            background: led-magenta.brighter(60%);
+                            opacity: led-mode == "dsd" ? 1 : 0;
+                            animate opacity { duration: AudioTheme.normal; }
+                        }
+                        Rectangle {
+                            x: -4px; y: -4px;
+                            width: parent.width + 8px;
+                            height: parent.height + 8px;
+                            border-radius: 14px;
+                            background: led-magenta;
+                            opacity: led-mode == "dsd" ? 0.15 : 0;
+                            z: -1;
+                            animate opacity { duration: AudioTheme.normal; }
+                        }
+                    }
+                    Text {
+                        text: "DSD";
+                        color: led-mode == "dsd" ? led-magenta : AudioTheme.text-faint;
+                        font-size: 7px;
+                        horizontal-alignment: center;
+                        animate color { duration: AudioTheme.normal; }
+                    }
+                }
+
+                Rectangle { horizontal-stretch: 1; }
+
+                Text {
+                    text: led-mode == "dsd" ? "● DSD" :
+                          led-mode == "hi-res" ? "● " + PlayerState.samplerate :
+                          "● " + PlayerState.samplerate;
+                    color: led-mode == "dsd" ? led-magenta :
+                           led-mode == "hi-res" ? led-green : led-blue;
+                    font-size: AudioTheme.font-small;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+            }
+
+            VerticalBox {
+                spacing: AudioTheme.spacing-xs;
+                Text {
+                    text: "STREAM";
+                    color: AudioTheme.text-faint;
+                    font-size: AudioTheme.font-small;
+                    letter-spacing: 1.2px;
+                    font-weight: 600;
+                }
+                Text {
+                    text: PlayerState.samplerate == "" ? "-- kHz" : PlayerState.samplerate;
+                    color: AudioTheme.text;
+                    font-size: AudioTheme.font-xl;
+                    font-weight: 700;
+                }
+                Text {
+                    text: (PlayerState.bitdepth == "" ? "--" : PlayerState.bitdepth) +
+                          " • " + (PlayerState.channels == "" ? "--" : PlayerState.channels);
+                    color: AudioTheme.text-secondary;
+                    font-size: AudioTheme.font-body;
+                }
+                HorizontalBox {
+                    spacing: AudioTheme.spacing-sm;
+                    padding-top: 2px;
+                    Text {
+                        text: "" + (PlayerState.latency == "" ? "--" : PlayerState.latency);
+                        color: AudioTheme.text-faint;
+                        font-size: AudioTheme.font-small;
+                    }
+                    Text {
+                        text: "" + PlayerState.buffer-pct + "%";
+                        color: AudioTheme.text-faint;
+                        font-size: AudioTheme.font-small;
+                    }
+                    Text {
+                        text: PlayerState.backend;
+                        color: AudioTheme.text-faint;
+                        font-size: AudioTheme.font-small;
+                        horizontal-stretch: 1;
+                        horizontal-alignment: right;
+                        opacity: 0.5;
+                    }
+                }
+            }
+        }
+    }
+}

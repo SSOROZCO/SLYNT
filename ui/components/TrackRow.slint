@@ -1,0 +1,114 @@
+import { VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { AudioTheme } from "../theme/Theme.slint";
+
+export component TrackRow inherits Rectangle {
+    in property <string> title;
+    in property <string> artist;
+    in property <string> format;
+    in property <string> info;
+    in property <string> duration;  // ← NUEVA PROPIEDAD
+    in property <bool> active;
+    callback clicked();
+
+    height: 46px;
+    border-radius: AudioTheme.radius-sm;
+    background: active ? AudioTheme.accent-bg : (ta.has-hover ? AudioTheme.glass-hover : transparent);
+    border-width: active ? 1px : 0px;
+    border-color: active ? AudioTheme.accent-border : transparent;
+    animate background { duration: AudioTheme.fast; }
+    animate border-width { duration: AudioTheme.fast; }
+    clip: true;
+
+    // ===== BARRA AZUL LATERAL =====
+    Rectangle {
+        width: active ? 3px : 0px;
+        height: 28px;
+        x: 0px;
+        y: (parent.height - self.height) / 2;
+        border-radius: 2px;
+        background: AudioTheme.accent;
+        drop-shadow-blur: active ? 12px : 0px;
+        drop-shadow-color: AudioTheme.accent-glow;
+        animate width { duration: AudioTheme.normal; easing: AudioTheme.easing; }
+        animate drop-shadow-blur { duration: AudioTheme.normal; }
+    }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    HorizontalBox {
+        padding-left: AudioTheme.spacing-lg;
+        padding-right: AudioTheme.spacing-md;
+        spacing: AudioTheme.spacing-md;
+        alignment: center;
+
+        // ===== ICONO DE REPRODUCCIÓN =====
+        Text {
+            text: "♫";
+            color: active ? AudioTheme.accent : AudioTheme.text-muted;
+            font-size: 13px;
+            vertical-alignment: center;
+            width: 16px;
+            horizontal-alignment: center;
+            animate color { duration: AudioTheme.fast; }
+        }
+
+        // ===== INFO DE LA CANCIÓN =====
+        VerticalBox {
+            spacing: 1px;
+            alignment: center;
+            horizontal-stretch: 1;
+
+            Text {
+                text: root.title;
+                color: active ? AudioTheme.text : AudioTheme.text-secondary;
+                font-size: AudioTheme.font-body;
+                font-weight: active ? 600 : 500;
+                overflow: elide;
+                animate color { duration: AudioTheme.fast; }
+            }
+
+            if root.artist != "" && root.artist != "Unknown": Text {
+                text: root.artist;
+                color: AudioTheme.text-muted;
+                font-size: AudioTheme.font-small;
+                overflow: elide;
+            }
+        }
+
+        // ===== DURACIÓN (solo visible al hacer hover) =====
+        Text {
+            text: root.duration;
+            color: AudioTheme.text-faint;
+            font-size: AudioTheme.font-small;
+            width: 40px;
+            horizontal-alignment: right;
+            opacity: ta.has-hover ? 1 : 0;
+            animate opacity { duration: AudioTheme.fast; }
+        }
+
+        // ===== FORMATO / INFO =====
+        Rectangle {
+            width: 48px;
+            height: 20px;
+            border-radius: AudioTheme.radius-sm;
+            background: ta.has-hover ? AudioTheme.glass-hover : transparent;
+            animate background { duration: AudioTheme.fast; }
+
+            Text {
+                text: ta.has-hover ? root.info : root.format;
+                color: ta.has-hover ? AudioTheme.text : AudioTheme.text-muted;
+                font-size: ta.has-hover ? AudioTheme.font-small : 9px;
+                font-weight: ta.has-hover ? 600 : 500;
+                vertical-alignment: center;
+                horizontal-alignment: center;
+                width: 100%;
+                height: 100%;
+                animate color { duration: AudioTheme.fast; }
+                animate font-size { duration: AudioTheme.fast; }
+            }
+        }
+    }
+}

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=SLYNT
+Comment=Hi-Fi Music Player
+Exec=slynt
+Icon=slynt
+Type=Application
+Categories=Audio;Music;Player;AudioVideo;
+Terminal=false

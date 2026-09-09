@@ -1,0 +1,581 @@
+import { VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { AudioTheme } from "../theme/Theme.slint";
+
+export struct Track {
+    id: int,
+    title: string,
+    path: string,
+    codec: string,
+    duration: string,
+    artist: string,
+    album: string,
+    year: string
+}
+
+export component PlaylistView inherits Rectangle {
+    in property <[Track]> tracks;
+    in property <int> current-id;
+
+    callback play-track(int);
+    callback clear-playlist();
+    callback delete-track(int);
+    callback filter-by-artist(string);
+    callback filter-by-album(string);
+
+    property <int> context-id: -1;
+    property <bool> show-menu: false;
+    property <length> menu-x: 0px;
+    property <length> menu-y: 0px;
+
+    // ========================================================
+    // GLASS
+    // ========================================================
+
+    background: AudioTheme.glass;
+    border-radius: AudioTheme.radius-default;
+    border-width: 1px;
+    border-color: AudioTheme.glass-border;
+    clip: true;
+
+    VerticalBox {
+        spacing: 0;
+
+        // ====================================================
+        // HEADER
+        // ====================================================
+
+        Rectangle {
+            height: 48px;
+            background: AudioTheme.glass-hover;
+            border-radius: AudioTheme.radius-default;
+
+            HorizontalBox {
+                padding-left: AudioTheme.spacing-lg;
+                padding-right: AudioTheme.spacing-md;
+                alignment: center;
+
+                Text {
+                    text: "Playlist";
+                    color: AudioTheme.text-primary;
+                    font-size: AudioTheme.font-title;
+                    font-weight: 600;
+                    horizontal-stretch: 1;
+                }
+
+                Text {
+                    text: tracks.length + " tracks";
+                    color: AudioTheme.text-faint;
+                    font-size: AudioTheme.font-small;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        // ====================================================
+        // SEPARATOR
+        // ====================================================
+
+        Rectangle {
+            height: 1px;
+            background: AudioTheme.glass-border;
+        }
+
+        // ====================================================
+        // TRACK LIST
+        // ====================================================
+
+        Flickable {
+            vertical-stretch: 1;
+            viewport-height: tracks.length * 40px;
+
+            VerticalBox {
+                spacing: 0;
+                padding-top: AudioTheme.spacing-sm;
+
+                for track in tracks: Rectangle {
+                    width: 100%;
+                    height: 40px;
+
+                    border-radius: AudioTheme.radius-sm;
+
+                    background:
+                        track.id == current-id
+                            ? AudioTheme.accent-bg
+                            : (ta.has-hover
+                                ? AudioTheme.glass-hover
+                                : transparent);
+
+                    animate background {
+                        duration: AudioTheme.fast;
+                    }
+
+                    // =================================================
+                    // PLAYING INDICATOR
+                    // =================================================
+
+                    if track.id == current-id : Rectangle {
+                        width: 3px;
+                        height: 24px;
+
+                        x: 0px;
+                        y: 8px;
+
+                        background: AudioTheme.accent;
+                        border-radius: 2px;
+
+                        drop-shadow-blur: 8px;
+                        drop-shadow-color: AudioTheme.accent-glow;
+                    }
+
+                    // =================================================
+                    // TRACK CONTENT
+                    //
+                    // IMPORTANT:
+                    // The row uses fixed columns instead of allowing
+                    // the metadata to drift toward the center.
+                    // =================================================
+
+                    HorizontalBox {
+                        padding-left: AudioTheme.spacing-lg;
+                        padding-right: AudioTheme.spacing-md;
+
+                        spacing: AudioTheme.spacing-sm;
+                        alignment: center;
+
+                        // ---------------------------------------------
+                        // NUMBER
+                        // ---------------------------------------------
+
+                        Text {
+                            text: track.id + 1;
+
+                            color:
+                                track.id == current-id
+                                    ? AudioTheme.accent
+                                    : AudioTheme.text-faint;
+
+                            font-size: AudioTheme.font-small;
+
+                            font-weight:
+                                track.id == current-id
+                                    ? 700
+                                    : 400;
+
+                            width: 28px;
+
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+
+                            animate color {
+                                duration: AudioTheme.fast;
+                            }
+                        }
+
+                        // ---------------------------------------------
+                        // TITLE
+                        // ---------------------------------------------
+
+                        Rectangle {
+                            width: 250px;
+                            height: 28px;
+
+                            background: transparent;
+
+                            Text {
+                                text: track.title;
+
+                                color:
+                                    track.id == current-id
+                                        ? AudioTheme.accent
+                                        : AudioTheme.text-primary;
+
+                                font-size: AudioTheme.font-body;
+
+                                font-weight:
+                                    track.id == current-id
+                                        ? 600
+                                        : 400;
+
+                                width: 100%;
+                                height: 100%;
+
+                                overflow: elide;
+
+                                vertical-alignment: center;
+
+                                animate color {
+                                    duration: AudioTheme.fast;
+                                }
+                            }
+                        }
+
+                        // ---------------------------------------------
+                        // ARTIST
+                        // ---------------------------------------------
+
+                        Rectangle {
+                            width: 120px;
+                            height: 20px;
+
+                            background: transparent;
+                            border-radius: 4px;
+
+                            states [
+                                hover when artist-ta.has-hover: {
+                                    background: #ffffff10;
+                                }
+                            ]
+
+                            Text {
+                                text:
+                                    track.artist != ""
+                                    && track.artist != "—"
+                                        ? track.artist
+                                        : "—";
+
+                                color:
+                                    track.id == current-id
+                                        ? AudioTheme.accent
+                                        : AudioTheme.text-muted;
+
+                                font-size: AudioTheme.font-small;
+
+                                width: 100%;
+
+                                overflow: elide;
+
+                                vertical-alignment: center;
+                                horizontal-alignment: right;
+                            }
+
+                            artist-ta := TouchArea {
+                                clicked => {
+                                    root.filter-by-artist(
+                                        track.artist
+                                    );
+                                }
+
+                                mouse-cursor: pointer;
+                            }
+                        }
+
+                        // ---------------------------------------------
+                        // ALBUM
+                        // ---------------------------------------------
+
+                        Rectangle {
+                            width: 120px;
+                            height: 20px;
+
+                            background: transparent;
+                            border-radius: 4px;
+
+                            visible:
+                                track.album != ""
+                                && track.album != "—";
+
+                            states [
+                                hover when album-ta.has-hover: {
+                                    background: #ffffff10;
+                                }
+                            ]
+
+                            Text {
+                                text: track.album;
+
+                                color: AudioTheme.text-faint;
+
+                                font-size:
+                                    AudioTheme.font-small - 1px;
+
+                                width: 100%;
+
+                                overflow: elide;
+
+                                vertical-alignment: center;
+                                horizontal-alignment: right;
+                            }
+
+                            album-ta := TouchArea {
+                                clicked => {
+                                    root.filter-by-album(
+                                        track.album
+                                    );
+                                }
+
+                                mouse-cursor: pointer;
+                            }
+                        }
+
+                        // ---------------------------------------------
+                        // YEAR
+                        // ---------------------------------------------
+
+                        Rectangle {
+                            width: 50px;
+                            height: 20px;
+
+                            Text {
+                                text:
+                                    track.year != ""
+                                    && track.year != "—"
+                                        ? track.year
+                                        : "—";
+
+                                color: AudioTheme.text-faint;
+
+                                font-size:
+                                    AudioTheme.font-small - 1px;
+
+                                width: 100%;
+
+                                horizontal-alignment: right;
+                                vertical-alignment: center;
+
+                                overflow: elide;
+                            }
+                        }
+
+                        // ---------------------------------------------
+                        // CODEC / DURATION
+                        //
+                        // THIS BEHAVIOR STAYS:
+                        // normal = codec
+                        // hover  = duration
+                        // ---------------------------------------------
+
+                        Rectangle {
+                            width: 70px;
+                            height: 20px;
+
+                            Text {
+                                text:
+                                    ta.has-hover
+                                        ? track.duration
+                                        : track.codec;
+
+                                color:
+                                    ta.has-hover
+                                        ? AudioTheme.text
+                                        : AudioTheme.text-faint;
+
+                                font-size:
+                                    ta.has-hover
+                                        ? AudioTheme.font-small
+                                        : AudioTheme.font-small - 1px;
+
+                                font-weight:
+                                    ta.has-hover
+                                        ? 500
+                                        : 400;
+
+                                horizontal-alignment: right;
+                                vertical-alignment: center;
+
+                                width: 100%;
+                                height: 100%;
+
+                                animate color {
+                                    duration: AudioTheme.fast;
+                                }
+                            }
+                        }
+                    }
+
+                    // =================================================
+                    // ROW TOUCH
+                    // =================================================
+
+                    ta := TouchArea {
+                        mouse-cursor: pointer;
+
+                        clicked => {
+                            root.play-track(track.id);
+                        }
+
+                        pointer-event(event) => {
+                            if event.button == PointerEventButton.right
+                                && event.kind == PointerEventKind.down {
+
+                                root.context-id = track.id;
+
+                                root.menu-x = self.mouse-x;
+                                root.menu-y = self.mouse-y;
+
+                                root.show-menu = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ========================================================
+    // CONTEXT MENU BACKDROP
+    // ========================================================
+
+    if show-menu : Rectangle {
+        width: 100%;
+        height: 100%;
+
+        background: #00000030;
+
+        z: 10;
+
+        TouchArea {
+            clicked => {
+                root.show-menu = false;
+            }
+        }
+    }
+
+    // ========================================================
+    // CONTEXT MENU
+    // ========================================================
+
+    if show-menu : Rectangle {
+        x: menu-x;
+        y: menu-y;
+
+        width: 220px;
+        height: 84px;
+
+        background: AudioTheme.glass;
+
+        border-radius: AudioTheme.radius-md;
+
+        z: 20;
+
+        drop-shadow-blur: 24px;
+        drop-shadow-color: #000000dd;
+
+        border-width: 1px;
+        border-color: AudioTheme.glass-border;
+
+        VerticalBox {
+            spacing: 0;
+            padding: AudioTheme.spacing-xs;
+
+            // =================================================
+            // REMOVE
+            // =================================================
+
+            Rectangle {
+                height: 36px;
+
+                border-radius: AudioTheme.radius-sm;
+
+                background:
+                    m1.has-hover
+                        ? AudioTheme.glass-hover
+                        : transparent;
+
+                animate background {
+                    duration: AudioTheme.fast;
+                }
+
+                HorizontalBox {
+                    spacing: AudioTheme.spacing-md;
+
+                    padding-left: AudioTheme.spacing-md;
+
+                    alignment: center;
+
+                    Image {
+                        source:
+                            @image-url(
+                                "../../data/icons/edit-delete.png"
+                            );
+
+                        width: 18px;
+                        height: 18px;
+
+                        image-fit: contain;
+
+                        colorize: AudioTheme.text-faint;
+                    }
+
+                    Text {
+                        text: "Remove from playlist";
+
+                        color: AudioTheme.text-primary;
+
+                        font-size: AudioTheme.font-body;
+                    }
+                }
+
+                m1 := TouchArea {
+                    clicked => {
+                        root.delete-track(
+                            root.context-id
+                        );
+
+                        root.show-menu = false;
+                    }
+
+                    mouse-cursor: pointer;
+                }
+            }
+
+            // =================================================
+            // CLEAR
+            // =================================================
+
+            Rectangle {
+                height: 36px;
+
+                border-radius: AudioTheme.radius-sm;
+
+                background:
+                    m2.has-hover
+                        ? #ff444422
+                        : transparent;
+
+                animate background {
+                    duration: AudioTheme.fast;
+                }
+
+                HorizontalBox {
+                    spacing: AudioTheme.spacing-md;
+
+                    padding-left: AudioTheme.spacing-md;
+
+                    alignment: center;
+
+                    Image {
+                        source:
+                            @image-url(
+                                "../../data/icons/edit-clear-list.png"
+                            );
+
+                        width: 18px;
+                        height: 18px;
+
+                        image-fit: contain;
+
+                        colorize: AudioTheme.text-faint;
+                    }
+
+                    Text {
+                        text: "Clear playlist";
+
+                        color: AudioTheme.text-primary;
+
+                        font-size: AudioTheme.font-body;
+                    }
+                }
+
+                m2 := TouchArea {
+                    clicked => {
+                        root.clear-playlist();
+
+                        root.show-menu = false;
+                    }
+
+                    mouse-cursor: pointer;
+                }
+            }
+        }
+    }
+}

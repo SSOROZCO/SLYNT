@@ -1,0 +1,36 @@
+import { AudioTheme } from "../theme/Theme.slint";
+
+export component PlayerButton inherits Rectangle {
+    in property <string> icon;
+    in property <bool> active: false;
+    in property <bool> small: false;
+    callback clicked();
+
+    width: small ? 36px : 44px;
+    height: self.width;
+    border-radius: self.width / 2;
+
+    background: active ? AudioTheme.accent-bg : touch.has-hover ? AudioTheme.glass-hover : transparent;
+    border-width: active ? 1px : 0px;
+    border-color: AudioTheme.accent-border;
+
+    drop-shadow-blur: active ? 12px : 0px;
+    drop-shadow-color: AudioTheme.accent-glow;
+
+    animate background { duration: AudioTheme.fast; }
+    animate drop-shadow-blur { duration: AudioTheme.fast; }
+
+    Text {
+        text: root.icon;
+        color: active || touch.has-hover ? AudioTheme.accent : AudioTheme.text-muted;
+        font-size: small ? 14px : 17px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        animate color { duration: AudioTheme.fast; }
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+        mouse-cursor: pointer;
+    }
+}

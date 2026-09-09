@@ -1,0 +1,11 @@
+# Build generado por CMake
+build/
+
+# Build de Rust generado por Cargo
+target/
+
+# Archivos temporales
+*.o
+*.obj
+*.swp
+*~

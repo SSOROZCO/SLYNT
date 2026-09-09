@@ -1,0 +1,70 @@
+import { AudioTheme } from "../theme/Theme.slint";
+import { PlayerState } from "../state/PlayerState.slint";
+
+export component BufferedSlider inherits Rectangle {
+    in property <float> progress;
+    in property <float> buffered;
+    in property <float> duration;
+    callback seek(float);
+
+    height: AudioTheme.slider-height;
+    background: transparent;
+
+    // TRACK
+    Rectangle {
+        y: (parent.height - AudioTheme.slider-track-height) / 2;
+        height: AudioTheme.slider-track-height;
+        width: 100%;
+        border-radius: AudioTheme.radius-md;
+        background: AudioTheme.glass;
+        border-width: 1px;
+        border-color: AudioTheme.glass-border;
+
+        // buffered
+        Rectangle {
+            width: parent.width * buffered;
+            height: 100%;
+            border-radius: AudioTheme.radius-md;
+            background: AudioTheme.text-faint;
+            opacity: 0.6;
+            animate width { duration: AudioTheme.normal; }
+        }
+
+        // progress
+        Rectangle {
+            width: parent.width * progress;
+            height: 100%;
+            border-radius: AudioTheme.radius-md;
+            background: AudioTheme.accent;
+            animate width { duration: AudioTheme.fast; }
+        }
+    }
+
+    // THUMB
+    Rectangle {
+        x: parent.width * progress - AudioTheme.slider-thumb-size / 2;
+        y: (parent.height - AudioTheme.slider-thumb-size) / 2;
+        width: AudioTheme.slider-thumb-size;
+        height: AudioTheme.slider-thumb-size;
+        border-radius: AudioTheme.slider-thumb-size / 2;
+        background: AudioTheme.text;
+        border-width: 1px;
+        border-color: AudioTheme.glass-border;
+        animate x { duration: AudioTheme.fast; }
+    }
+
+    // INTERACCION
+    TouchArea {
+        width: 100%; height: 100%;
+        pointer-event(event) => {
+            if event.button == PointerEventButton.left {
+                root.seek(self.mouse-x / self.width);
+            }
+        }
+        moved => {
+            if self.pressed {
+                root.seek(self.mouse-x / self.width);
+            }
+        }
+    }
+}

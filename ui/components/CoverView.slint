@@ -1,0 +1,7 @@
+import { CrossfadeImage } from "CrossfadeImage.slint";
+export component CoverView inherits Rectangle {
+    in property <image> cover;
+    pure function size() -> length { Math.min(Math.min(root.width * 90%, root.height * 80%), 420px) }
+    width: size(); height: self.width; border-radius: 12px; clip: true; background: #0f1720;
+    CrossfadeImage { width: 100%; height: 100%; cover: root.cover; }
+}

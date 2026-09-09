@@ -1,0 +1,292 @@
+import { VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { AudioTheme } from "../theme/Theme.slint";
+
+export component AboutWindow inherits Window {
+title: "About SLYNT";
+
+icon: @image-url("../../assets/icons/hicolor/256x256/apps/slynt.png");
+
+width: 520px;
+height: 500px;
+
+background: AudioTheme.glass;
+
+callback close();
+callback open-github();
+
+// ========================================================
+// MAIN CONTENT
+// ========================================================
+
+VerticalBox {
+    padding: 28px;
+    spacing: 0;
+
+    // ====================================================
+    // HEADER
+    // ====================================================
+
+    HorizontalBox {
+        height: 32px;
+
+        Text {
+            text: "About SLYNT";
+            color: AudioTheme.text;
+            font-size: 16px;
+            font-weight: 700;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+    }
+
+    // ====================================================
+    // LOGO
+    // ====================================================
+
+    Rectangle {
+        height: 24px;
+    }
+
+    Image {
+        source: @image-url("../../assets/slynt-logo-256.png");
+
+        width: 128px;
+        height: 128px;
+
+        image-fit: ImageFit.contain;
+        horizontal-alignment: center;
+    }
+
+    Rectangle {
+        height: 20px;
+    }
+
+    // ====================================================
+    // NAME
+    // ====================================================
+
+    Text {
+        text: "SLYNT";
+
+        color: AudioTheme.text;
+
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: 3px;
+
+        horizontal-alignment: center;
+    }
+
+    Rectangle {
+        height: 8px;
+    }
+
+    Text {
+        text: "Hi-Fi Music Player";
+
+        color: AudioTheme.text-muted;
+
+        font-size: 12px;
+
+        horizontal-alignment: center;
+    }
+
+    Rectangle {
+        height: 24px;
+    }
+
+        // ====================================================
+    // VERSION / RELEASE STATUS
+    // ====================================================
+
+    Text {
+        text: "Version 0.1.0";
+
+        color: AudioTheme.text;
+
+        font-size: 12px;
+        font-weight: 600;
+
+        horizontal-alignment: center;
+    }
+
+    Rectangle {
+        height: 4px;
+    }
+
+    Text {
+        text: "Beta Release";
+
+        color: AudioTheme.accent;
+
+        font-size: 11px;
+        font-weight: 700;
+
+        horizontal-alignment: center;
+    }
+
+    Rectangle {
+        height: 24px;
+    }
+
+    // ====================================================
+    // AUTHOR
+    // ====================================================
+
+    Text {
+        text: "Author and maintainer";
+
+        color: AudioTheme.text-faint;
+
+        font-size: 11px;
+
+        horizontal-alignment: center;
+    }
+
+    Rectangle {
+        height: 4px;
+    }
+
+    Text {
+        text: "Sebastián S. Orozco";
+
+        color: AudioTheme.text;
+
+        font-size: 14px;
+        font-weight: 600;
+
+        horizontal-alignment: center;
+    }
+
+    // ====================================================
+    // FLEXIBLE SPACE
+    // ====================================================
+
+    Rectangle {
+        vertical-stretch: 1;
+    }
+
+    // ====================================================
+    // FOOTER
+    // ====================================================
+
+    HorizontalBox {
+        height: 36px;
+        spacing: 10px;
+
+        // ------------------------------------------------
+        // GITHUB
+        // ------------------------------------------------
+
+        Rectangle {
+            width: 190px;
+            height: 36px;
+
+            background:
+                github-touch.has-hover
+                    ? AudioTheme.glass-hover
+                    : AudioTheme.glass;
+
+            border-radius: 9px;
+            border-width: 1px;
+
+            border-color:
+                github-touch.has-hover
+                    ? AudioTheme.accent
+                    : AudioTheme.glass-border;
+
+            Text {
+                text: "GitHub  •  SLYNT";
+
+                color:
+                    github-touch.has-hover
+                        ? AudioTheme.accent
+                        : AudioTheme.text;
+
+                font-size: 12px;
+                font-weight: 600;
+
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            github-touch := TouchArea {
+                clicked => {
+                    root.open-github();
+                }
+
+                mouse-cursor: pointer;
+            }
+        }
+
+        // ------------------------------------------------
+        // SPACE
+        // ------------------------------------------------
+
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+
+        // ------------------------------------------------
+        // CLOSE
+        // ------------------------------------------------
+
+        Rectangle {
+            width: 100px;
+            height: 36px;
+
+            background:
+                close-touch.has-hover
+                    ? AudioTheme.accent
+                    : AudioTheme.glass;
+
+            border-radius: 9px;
+            border-width: 1px;
+
+            border-color:
+                close-touch.has-hover
+                    ? AudioTheme.accent
+                    : AudioTheme.glass-border;
+
+            Text {
+                text: "Close";
+
+                color:
+                    close-touch.has-hover
+                        ? #000
+                        : AudioTheme.text;
+
+                font-size: 12px;
+                font-weight: 600;
+
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            close-touch := TouchArea {
+                clicked => {
+                    root.close();
+                }
+
+                mouse-cursor: pointer;
+            }
+        }
+    }
+
+    Rectangle {
+        height: 8px;
+    }
+
+    Text {
+        text: "© SLYNT";
+
+        color: AudioTheme.text-faint;
+
+        font-size: 10px;
+
+        horizontal-alignment: center;
+    }
+}
+
+
+}

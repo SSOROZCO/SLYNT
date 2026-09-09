@@ -1,0 +1,69 @@
+// ============================================
+// PLAYERSTATE - CON FALLBACK AUTOMATICO
+// ============================================
+import { AudioTheme } from "../theme/Theme.slint";
+
+export global PlayerState {
+    // ===== METADATOS =====
+    in-out property <string> title: "No Song";
+    in-out property <string> artist: "—";
+    in-out property <string> album: "—";
+    in-out property <image> cover;
+    in-out property <int> current-id: -1;
+
+    // ===== ESTADO =====
+    in-out property <bool> is-playing: false;
+    in-out property <float> position: 0.0;
+    in-out property <float> duration: 0.0;
+    in-out property <float> progress: 0.0;
+    in-out property <float> buffered: 0.0;
+    in-out property <string> time-pos: "00:00";
+    in-out property <string> time-total: "00:00";
+    in-out property <float> volume: 0.85;
+    in-out property <bool> muted: false;
+
+    // ===== AUDIO INFO =====
+    in-out property <string> dac: "FiiO R2R";
+    in-out property <string> backend: "ALSA";
+    in-out property <string> device: "hw:1,0";
+    in-out property <string> codec: "FLAC";
+    in-out property <string> samplerate: "44.1 kHz";
+    in-out property <string> bitdepth: "24 bit";
+    in-out property <string> channels: "2ch";
+    in-out property <bool> bit-perfect: true;
+    in-out property <string> latency: "0 ms";
+    in-out property <int> buffer-pct: 0;
+    in-out property <string> signal-path: "FLAC → ALSA → DAC";
+
+    // ===== NUEVO: FALLBACK AUTOMATICO =====
+    in-out property <bool> is-fallback: false;
+    in-out property <string> original-format: ""; // ej "DSD256"
+    in-out property <string> fallback-info: ""; // ej "DSD256 → PCM 352.8kHz"
+
+    // ===== MODO =====
+    in-out property <string> repeat-mode: "Off";
+    in-out property <bool> shuffle: false;
+
+    // ===== SPECTRUM =====
+    in-out property <[float]> spectrum: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    in-out property <bool> spectrum-enabled: true;
+
+    public function update-time(position-seconds: float, duration-seconds: float) {
+        position = position-seconds;
+        duration = duration-seconds;
+        if (duration > 0.0) {
+            progress = position / duration;
+        }
+    }
+
+    public function set-volume(new-volume: float) {
+        volume = Math.clamp(new-volume, 0.0, 1.0);
+    }
+
+    public function set-fallback(is-fb: bool, orig: string, info: string) {
+        is-fallback = is-fb;
+        original-format = orig;
+        fallback-info = info;
+        bit-perfect = !is-fb;
+    }
+}

@@ -1,0 +1,539 @@
+import { VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { AudioTheme } from "theme/Theme.slint";
+import { PlayerState } from "state/PlayerState.slint";
+import { Header } from "components/Header.slint";
+import { AlbumCover } from "components/AlbumCover.slint";
+import { PlaylistView, Track } from "components/PlaylistView.slint";
+import { DACPanel } from "components/DACPanel.slint";
+import { TransportBar } from "components/TransportBar.slint";
+
+import { LibraryWindow, Album } from "pages/library.slint";
+export { LibraryWindow, Album } from "pages/library.slint";
+
+import { AboutWindow } from "components/AboutWindow.slint";
+export { AboutWindow } from "components/AboutWindow.slint";
+
+export component MainWindow inherits Window {
+    title: "SLYNT";
+    icon: @image-url("../assets/icons/hicolor/256x256/apps/slynt.png");
+
+    preferred-width: 1280px;
+    preferred-height: 720px;
+
+    min-width: 980px;
+    min-height: 600px;
+
+    background: #0a1018;
+
+    // ========================================================
+    // PROPERTIES
+    // ========================================================
+
+    in property <[Track]> filtered;
+    in-out property <string> output-mode: "auto";
+
+    in-out property <string> repeat-mode <=> PlayerState.repeat-mode;
+    in-out property <bool> shuffle <=> PlayerState.shuffle;
+
+    in-out property <string> _title <=> PlayerState.title;
+    in-out property <string> _artist <=> PlayerState.artist;
+    in-out property <string> _album <=> PlayerState.album;
+    in-out property <image> _cover <=> PlayerState.cover;
+
+    in-out property <float> _progress <=> PlayerState.progress;
+    in-out property <float> _buffered <=> PlayerState.buffered;
+
+    in-out property <bool> _is-playing <=> PlayerState.is-playing;
+    in-out property <float> _volume <=> PlayerState.volume;
+
+    in-out property <string> _time-pos <=> PlayerState.time-pos;
+    in-out property <string> _time-total <=> PlayerState.time-total;
+
+    in-out property <int> _current-id <=> PlayerState.current-id;
+
+    in-out property <string> _dac <=> PlayerState.dac;
+    in-out property <string> _codec <=> PlayerState.codec;
+    in-out property <bool> _bit-perfect <=> PlayerState.bit-perfect;
+
+    in-out property <string> _backend <=> PlayerState.backend;
+    in-out property <string> _device <=> PlayerState.device;
+
+    in-out property <string> _samplerate <=> PlayerState.samplerate;
+    in-out property <string> _bitdepth <=> PlayerState.bitdepth;
+    in-out property <string> _channels <=> PlayerState.channels;
+
+    in-out property <string> _signal-path <=> PlayerState.signal-path;
+    in-out property <string> _latency <=> PlayerState.latency;
+
+    in-out property <int> _buffer-pct <=> PlayerState.buffer-pct;
+    in-out property <[float]> _spectrum <=> PlayerState.spectrum;
+
+    in-out property <string> search-query: "";
+    in-out property <bool> has-filter: false;
+
+    // ========================================================
+    // FILE MENU
+    // ========================================================
+
+    property <bool> file-menu-open: false;
+    property <bool> show-about: false;
+
+    // ========================================================
+    // CALLBACKS
+    // ========================================================
+
+    callback play-pause();
+    callback next();
+    callback prev();
+
+    callback seek(float);
+    callback set-volume(float);
+
+    callback open-folder();
+    callback search(string);
+
+    callback play-track(int);
+
+    callback toggle-shuffle();
+    callback toggle-repeat();
+
+    callback set-output-mode(string);
+    callback toggle-fullscreen();
+
+    callback clear-playlist();
+    callback delete-track(int);
+
+    callback filter-by-artist(string);
+    callback filter-by-album(string);
+
+    callback clear-filter();
+
+    callback open-library();
+    callback open-about();
+
+    // IMPORTANTE:
+    // Este callback ya existe en la versión que comprobaste
+    // que compila y que permite cerrar todas las ventanas.
+    callback quit-all();
+
+    // ========================================================
+    // ROOT
+    // ========================================================
+
+    Rectangle {
+        background: AudioTheme.background;
+
+        // ====================================================
+        // MAIN CONTENT
+        // ====================================================
+
+        VerticalBox {
+            spacing: 0;
+            padding-bottom: 108px;
+
+            // =================================================
+            // HEADER
+            // =================================================
+
+            Header {
+                file-menu-open: root.file-menu-open;
+
+                open-folder => {
+                    root.open-folder();
+                }
+
+                search(s) => {
+                    root.search-query = s;
+                    root.has-filter = s != "";
+                    root.search(s);
+                }
+
+                open-library => {
+                    root.open-library();
+                }
+
+                open-about => {
+                    root.open-about();
+                }
+
+                file-menu-toggle => {
+                    root.file-menu-open =
+                        !root.file-menu-open;
+                }
+            }
+
+            // =================================================
+            // FILTER BAR
+            // =================================================
+
+            if root.has-filter : Rectangle {
+                height: 28px;
+                background: AudioTheme.accent-bg;
+
+                HorizontalBox {
+                    padding-left: 16px;
+                    padding-right: 8px;
+                    spacing: 8px;
+                    alignment: center;
+
+                    Text {
+                        text:
+                            "Filtering: "
+                            + root.search-query;
+
+                        color: AudioTheme.accent;
+                        font-size: AudioTheme.font-small;
+
+                        horizontal-stretch: 1;
+
+                        overflow: elide;
+                        vertical-alignment: center;
+                    }
+
+                    Rectangle {
+                        width: 60px;
+                        height: 20px;
+
+                        background: AudioTheme.accent;
+                        border-radius: 6px;
+
+                        Text {
+                            text: "Clean";
+
+                            color: #000;
+
+                            font-size: 10px;
+                            font-weight: 700;
+
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+
+                        TouchArea {
+                            clicked => {
+                                root.search-query = "";
+                                root.has-filter = false;
+                                root.clear-filter();
+                            }
+
+                            mouse-cursor: pointer;
+                        }
+                    }
+                }
+            }
+
+            // =================================================
+            // CENTER CONTENT
+            // =================================================
+
+            HorizontalBox {
+                spacing: 12px;
+                padding: 12px;
+                vertical-stretch: 1;
+
+                // ---------------------------------------------
+                // ALBUM COVER
+                // ---------------------------------------------
+
+                AlbumCover {
+                    width: 320px;
+                    horizontal-stretch: 0;
+
+                    cover: root._cover;
+                    title: root._title;
+                    artist: root._artist;
+                    album: root._album;
+
+                    is-playing: root._is-playing;
+                }
+
+                // ---------------------------------------------
+                // PLAYLIST
+                // ---------------------------------------------
+
+                PlaylistView {
+                    horizontal-stretch: 1;
+                    min-width: 420px;
+
+                    tracks: root.filtered;
+                    current-id: root._current-id;
+
+                    play-track(i) => {
+                        root.play-track(i);
+                    }
+
+                    clear-playlist => {
+                        root.clear-playlist();
+                    }
+
+                    delete-track(i) => {
+                        root.delete-track(i);
+                    }
+
+                    filter-by-artist(a) => {
+                        root.search-query = a;
+                        root.has-filter = true;
+                        root.filter-by-artist(a);
+                    }
+
+                    filter-by-album(a) => {
+                        root.search-query = a;
+                        root.has-filter = true;
+                        root.filter-by-album(a);
+                    }
+                }
+
+                // ---------------------------------------------
+                // DAC PANEL
+                // ---------------------------------------------
+
+                DACPanel {
+                    width: 260px;
+                    horizontal-stretch: 0;
+
+                    output-mode <=> root.output-mode;
+
+                    set-output-mode(m) => {
+                        root.set-output-mode(m);
+                    }
+                }
+            }
+        }
+
+        // ====================================================
+        // TRANSPORT BAR
+        // ====================================================
+
+        TransportBar {
+            width: root.width - 24px;
+            height: 104px;
+
+            x: 12px;
+            y: root.height - self.height - 12px;
+
+            repeat-mode: root.repeat-mode;
+            shuffle: root.shuffle;
+
+            is-playing: root._is-playing;
+
+            progress: root._progress;
+            time-pos: root._time-pos;
+            time-total: root._time-total;
+
+            spectrum: root._spectrum;
+
+            play-pause => {
+                root.play-pause();
+            }
+
+            next => {
+                root.next();
+            }
+
+            prev => {
+                root.prev();
+            }
+
+            seek(p) => {
+                root.seek(p);
+            }
+
+            set-volume(v) => {
+                root.set-volume(v);
+            }
+
+            toggle-shuffle => {
+                root.toggle-shuffle();
+            }
+
+            toggle-repeat => {
+                root.toggle-repeat();
+            }
+        }
+
+        // ====================================================
+        // CLICK-OUTSIDE LAYER
+        // ====================================================
+
+        if root.file-menu-open : TouchArea {
+            x: 0px;
+            y: 0px;
+
+            width: root.width;
+            height: root.height;
+
+            clicked => {
+                root.file-menu-open = false;
+            }
+        }
+
+        // ====================================================
+        // FLOATING FILE MENU
+        // ====================================================
+
+        if root.file-menu-open : Rectangle {
+            x: 16px;
+            y: 52px;
+
+            width: 190px;
+            height: 96px;
+
+            background: AudioTheme.glass;
+
+            border-radius: 10px;
+            border-width: 1px;
+            border-color: AudioTheme.glass-border;
+
+            // ------------------------------------------------
+            // ABOUT SLYNT
+            // ------------------------------------------------
+
+            Rectangle {
+                x: 6px;
+                y: 6px;
+
+                width: parent.width - 12px;
+                height: 38px;
+
+                background:
+                    about-touch.has-hover
+                        ? AudioTheme.glass-hover
+                        : transparent;
+
+                border-radius: 7px;
+
+                // ICONO ABOUT
+                Image {
+                    source:
+                        @image-url(
+                            "../assets/icons/dialog-information.png"
+                        );
+
+                    width: 22px;
+                    height: 22px;
+
+                    x: 10px;
+                    y: 8px;
+                }
+
+                Text {
+                    text: "About SLYNT";
+
+                    color:
+                        about-touch.has-hover
+                            ? AudioTheme.accent
+                            : AudioTheme.text;
+
+                    font-size: 12px;
+                    font-weight: 600;
+
+                    horizontal-alignment: left;
+                    vertical-alignment: center;
+
+                    x: 40px;
+                }
+
+                about-touch := TouchArea {
+                    clicked => {
+                        root.file-menu-open = false;
+                        root.open-about();
+                    }
+
+                    mouse-cursor: pointer;
+                }
+            }
+
+            // ------------------------------------------------
+            // QUIT SLYNT
+            // ------------------------------------------------
+
+            Rectangle {
+                x: 6px;
+                y: 48px;
+
+                width: parent.width - 12px;
+                height: 38px;
+
+                background:
+                    quit-touch.has-hover
+                        ? AudioTheme.glass-hover
+                        : transparent;
+
+                border-radius: 7px;
+
+                // ICONO QUIT
+                Image {
+                    source:
+                        @image-url(
+                            "../assets/icons/application-exit-all.png"
+                        );
+
+                    width: 22px;
+                    height: 22px;
+
+                    x: 10px;
+                    y: 8px;
+                }
+
+                Text {
+                    text: "Quit SLYNT";
+
+                    color:
+                        quit-touch.has-hover
+                            ? AudioTheme.accent
+                            : AudioTheme.text;
+
+                    font-size: 12px;
+                    font-weight: 600;
+
+                    horizontal-alignment: left;
+                    vertical-alignment: center;
+
+                    x: 40px;
+                }
+
+                quit-touch := TouchArea {
+                    clicked => {
+                        root.file-menu-open = false;
+                        root.quit-all();
+                    }
+
+                    mouse-cursor: pointer;
+                }
+            }
+        }
+    }
+
+    // ========================================================
+    // KEYBOARD / FOCUS
+    // ========================================================
+
+    FocusScope {
+        key-pressed(event) => {
+
+            if event.text == Key.F11 {
+                root.toggle-fullscreen();
+                return accept;
+            }
+
+            if event.text == Key.Escape &&
+                root.file-menu-open {
+
+                root.file-menu-open = false;
+                return accept;
+            }
+
+            if event.text == Key.Escape &&
+                root.has-filter {
+
+                root.search-query = "";
+                root.has-filter = false;
+                root.clear-filter();
+
+                return accept;
+            }
+
+            return reject;
+        }
+    }
+}

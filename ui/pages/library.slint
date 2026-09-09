@@ -1,0 +1,1405 @@
+import { VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { AudioTheme } from "../theme/Theme.slint";
+
+export struct Album {
+id: int,
+title: string,
+artist: string,
+year: string,
+cover: image,
+has_cover: bool,
+root-path: string,
+track-count: int,
+}
+
+export component LibraryWindow inherits Window {
+title: "Biblioteca SLYNT";
+icon: @image-url("../../assets/icons/hicolor/256x256/apps/slynt.png");
+preferred-width: 380px;
+preferred-height: 820px;
+min-width: 380px;
+min-height: 600px;
+background: AudioTheme.background;
+
+// ============================================================
+// ESTADO
+// ============================================================
+
+in property <string> state: "empty";
+in property <int> percent: 0;
+in property <string> current-folder: "/media/MUSIC/FLAC";
+in property <string> warning-folder: "MUSIC";
+in property <string> warning-path: "/media/MUSIC";
+in property <int> found-albums: 0;
+in property <[Album]> albums;
+
+in property <bool> library-busy: false;
+in property <string> library-status: "";
+
+in-out property <string> confirm-type: "";
+in-out property <int> confirm-album-id: -1;
+in-out property <string> confirm-album-title: "";
+
+// ============================================================
+// ANIMACIONES VISUALES
+// ============================================================
+
+// Se activa solamente cuando se pulsa el icono de biblioteca.
+property <bool> library-clicked: false;
+
+// ============================================================
+// CALLBACKS
+// ============================================================
+
+callback add-folder();
+callback retry();
+callback remove-folder(string);
+callback album-double-clicked(int);
+callback album-delete(int);
+callback delete-all();
+
+callback refresh-library();
+
+callback close();
+callback confirm-yes();
+callback confirm-no();
+
+
+// ============================================================
+// CONTENEDOR PRINCIPAL
+// ============================================================
+
+VerticalLayout {
+    spacing: 0;
+
+
+    // ========================================================
+    // HEADER
+    // ========================================================
+
+    Rectangle {
+        height: 48px;
+        background: AudioTheme.background;
+
+        HorizontalLayout {
+            padding-left: AudioTheme.spacing-lg;
+            padding-right: AudioTheme.spacing-md;
+            spacing: AudioTheme.spacing-sm;
+
+
+            // ------------------------------------------------
+            // ICONO + TÍTULO
+            // ------------------------------------------------
+
+            Image {
+                source:
+                    @image-url("../icons/library.png");
+
+                width: 22px;
+                height: 22px;
+
+                image-fit:
+                    ImageFit.contain;
+
+                colorize:
+                    AudioTheme.accent;
+
+                // Pequeña animación de entrada.
+                //
+                // No rota continuamente.
+                // Solamente responde al click.
+
+                rotation-angle:
+                    root.library-clicked
+                        ? 4deg
+                        : 0deg;
+
+                animate rotation-angle {
+                    duration: 140ms;
+                    easing: ease-out;
+                }
+            }
+
+
+            VerticalLayout {
+                alignment: center;
+
+                Text {
+                    text: "Library";
+                    color: AudioTheme.text-primary;
+                    font-size: AudioTheme.font-title;
+                    font-weight: 700;
+                    letter-spacing: 2px;
+                }
+
+                if root.state == "list" : Text {
+                    text:
+                        root.albums.length
+                        + " albums";
+
+                    color: AudioTheme.text-muted;
+                    font-size: AudioTheme.font-small;
+                }
+            }
+
+
+            // ------------------------------------------------
+            // ESPACIADOR
+            // ------------------------------------------------
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+
+            // =================================================
+            // INDICADOR DE ACTUALIZACIÓN
+            // =================================================
+
+            if root.library-busy : HorizontalLayout {
+                spacing: 6px;
+                alignment: center;
+
+                Rectangle {
+                    width: 10px;
+                    height: 10px;
+
+                    border-radius: 5px;
+
+                    background: transparent;
+
+                    border-width: 1.5px;
+                    border-color: AudioTheme.accent;
+
+                    opacity: 0.45;
+
+                    animate opacity {
+                        duration: 700ms;
+                        easing: ease-in-out;
+                    }
+                }
+
+                Text {
+                    text:
+                        root.library-status != ""
+                            ? root.library-status
+                            : "Updating…";
+
+                    color: AudioTheme.text-muted;
+                    font-size: AudioTheme.font-small;
+                    overflow: elide;
+                }
+            }
+
+
+            // =================================================
+            // BOTÓN ELIMINAR TODO
+            // =================================================
+
+            if root.state == "list"
+                && root.albums.length > 0
+                && !root.library-busy : Rectangle {
+
+                width: 32px;
+                height: 32px;
+
+                border-radius:
+                    AudioTheme.radius-sm;
+
+                background:
+                    delete-all-touch.has-hover
+                        ? #ff1744
+                        : AudioTheme.surface;
+
+                border-width: 1px;
+
+                border-color:
+                    delete-all-touch.has-hover
+                        ? #ff1744
+                        : AudioTheme.border;
+
+
+                Image {
+                    source:
+                        @image-url(
+                            "../icons/edit-clear-list.png"
+                        );
+
+                    width: 18px;
+                    height: 18px;
+
+                    image-fit:
+                        ImageFit.contain;
+
+                    colorize:
+                        delete-all-touch.has-hover
+                            ? #ffffff
+                            : AudioTheme.text-muted;
+
+                    x:
+                        (parent.width - self.width) / 2;
+
+                    y:
+                        (parent.height - self.height) / 2;
+                }
+
+
+                delete-all-touch := TouchArea {
+                    clicked => {
+                        root.confirm-type = "all";
+                    }
+
+                    mouse-cursor: pointer;
+                }
+            }
+
+// =================================================
+// CERRAR
+// =================================================
+
+Rectangle {
+    width: 64px;
+    height: 32px;
+
+    border-radius:
+        AudioTheme.radius-sm;
+
+    background:
+        close-touch.has-hover
+            ? AudioTheme.glass-hover
+            : AudioTheme.surface;
+
+    border-width: 1px;
+
+    border-color:
+        close-touch.has-hover
+            ? AudioTheme.accent
+            : AudioTheme.border;
+
+
+    Text {
+        text: "Close";
+
+        font-size: 11px;
+        font-weight: 600;
+
+        color:
+            close-touch.has-hover
+                ? AudioTheme.accent
+                : AudioTheme.text-muted;
+
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+
+    close-touch := TouchArea {
+        clicked => {
+            root.close();
+        }
+
+        mouse-cursor: pointer;
+    }
+}
+        }
+    }
+
+
+    // ========================================================
+    // BARRA DE ACCIONES
+    // ========================================================
+
+    if root.state == "list" : Rectangle {
+        height: 52px;
+        background: AudioTheme.background;
+
+        HorizontalLayout {
+            padding-left: AudioTheme.spacing-md;
+            padding-right: AudioTheme.spacing-md;
+            spacing: AudioTheme.spacing-sm;
+            alignment: center;
+
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+
+// ------------------------------------------------
+// AGREGAR CARPETA
+// ------------------------------------------------
+
+Rectangle {
+    width: 40px;
+    height: 36px;
+
+    background:
+        add-touch.has-hover
+            ? AudioTheme.accent
+            : AudioTheme.accent-bg;
+
+    border-radius: AudioTheme.radius-md;
+
+    border-width: 1px;
+
+    border-color:
+        add-touch.has-hover
+            ? AudioTheme.accent
+            : AudioTheme.accent-border;
+
+    // --------------------------------------------
+    // ICONO DE CARPETA
+    // Cerrada normalmente.
+    // Abierta al pasar el mouse.
+    // --------------------------------------------
+
+    Image {
+        source:
+            add-touch.has-hover
+                ? @image-url("../icons/folder-library-open.png")
+                : @image-url("../icons/folder-library.png");
+
+        width: 24px;
+        height: 24px;
+
+        image-fit: ImageFit.contain;
+
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+    }
+
+    add-touch := TouchArea {
+        clicked => {
+            if root.state != "loading"
+                && !root.library-busy {
+                root.add-folder();
+            }
+        }
+
+        mouse-cursor: pointer;
+
+
+                }
+            }
+        }
+    }
+
+
+    // ========================================================
+    // EMPTY
+    // ========================================================
+
+    if root.state == "empty" : Rectangle {
+        vertical-stretch: 1;
+        background: AudioTheme.background;
+
+        VerticalLayout {
+            alignment: center;
+            spacing: AudioTheme.spacing-xl;
+            padding: 48px;
+
+
+            Rectangle {
+                width: 72px;
+                height: 72px;
+
+                border-radius:
+                    AudioTheme.radius-xl;
+
+                background: AudioTheme.surface;
+
+                border-width: 1px;
+                border-color: AudioTheme.border;
+
+
+                Image {
+                    source:
+                        @image-url("../icons/library.png");
+
+                    width: 36px;
+                    height: 36px;
+
+                    image-fit:
+                        ImageFit.contain;
+
+                    colorize:
+                        AudioTheme.accent;
+
+                    x:
+                        (parent.width - self.width) / 2;
+
+                    y:
+                        (parent.height - self.height) / 2;
+                }
+            }
+
+
+            VerticalLayout {
+                spacing: AudioTheme.spacing-sm;
+                alignment: center;
+
+
+                Text {
+                    text: "There is no music loaded";
+
+                    color: AudioTheme.text-primary;
+
+                    font-size: 15px;
+                    font-weight: 600;
+
+                    horizontal-alignment: center;
+                }
+
+
+                Text {
+                    text:
+                        "Add a folder where you keep your collection";
+
+                    color: AudioTheme.text-secondary;
+
+                    font-size: AudioTheme.font-body;
+
+                    horizontal-alignment: center;
+                }
+            }
+
+
+            Rectangle {
+                width: 200px;
+                height: 40px;
+
+                background:
+                    AudioTheme.accent;
+
+                border-radius:
+                    AudioTheme.radius-md;
+
+
+                Text {
+                    text: "Add Folder";
+
+                    color:
+                        AudioTheme.background;
+
+                    font-size:
+                        AudioTheme.font-title;
+
+                    font-weight: 600;
+
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+
+                TouchArea {
+                    clicked => {
+                        root.add-folder();
+                    }
+
+                    mouse-cursor: pointer;
+                }
+            }
+        }
+    }
+
+
+    // ========================================================
+    // LOADING
+    // ========================================================
+
+    if root.state == "loading" : Rectangle {
+        vertical-stretch: 1;
+        background: AudioTheme.background;
+
+        VerticalLayout {
+            alignment: center;
+            spacing: 32px;
+            padding: 40px;
+
+
+            Rectangle {
+                width: 160px;
+                height: 160px;
+
+
+                Rectangle {
+                    width: 100%;
+                    height: 100%;
+
+                    border-radius: 80px;
+
+                    background: #00ff4108;
+
+                    animate background {
+                        duration: 400ms;
+                    }
+                }
+
+
+                Rectangle {
+                    width: 88px;
+                    height: 88px;
+
+                    border-radius: 44px;
+
+                    border-width: 3px;
+                    border-color: #1e2a38;
+
+                    background: transparent;
+
+                    x: 36px;
+                    y: 36px;
+                }
+
+
+                Rectangle {
+                    width: 88px;
+                    height: 88px;
+
+                    border-radius: 44px;
+
+                    border-width: 3px;
+                    border-color: AudioTheme.accent;
+
+                    background: transparent;
+
+                    x: 36px;
+                    y: 36px;
+
+                    clip: true;
+
+
+                    Rectangle {
+                        width: 88px;
+
+                        height:
+                            (root.percent / 100.0) * 88px;
+
+                        y:
+                            88px - self.height;
+
+                        x: 0px;
+
+                        background:
+                            AudioTheme.accent;
+
+                        opacity: 0.15;
+
+                        animate height {
+                            duration: 200ms;
+                            easing: ease-out;
+                        }
+                    }
+                }
+
+
+                VerticalLayout {
+                    width: 100%;
+                    height: 100%;
+
+                    alignment: center;
+                    spacing: 2px;
+
+
+                    Text {
+                        text:
+                            root.percent + "%";
+
+                        color:
+                            AudioTheme.text-primary;
+
+                        font-size: 38px;
+                        font-weight: 700;
+
+                        horizontal-alignment: center;
+                    }
+
+
+                    Text {
+                        text: "READING";
+
+                        color:
+                            AudioTheme.accent;
+
+                        font-size: 9px;
+                        letter-spacing: 3px;
+                        font-weight: 600;
+
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+
+
+            VerticalLayout {
+                spacing: AudioTheme.spacing-sm;
+                alignment: center;
+
+
+                Text {
+                    text:
+                        "Updating the library";
+
+                    color:
+                        AudioTheme.text-primary;
+
+                    font-size: 14px;
+                    font-weight: 600;
+
+                    horizontal-alignment: center;
+                }
+
+
+                Text {
+                    text:
+                        root.current-folder;
+
+                    color:
+                        AudioTheme.text-muted;
+
+                    font-size: AudioTheme.font-body;
+
+                    horizontal-alignment: center;
+
+                    width: 280px;
+
+                    overflow: elide;
+                }
+            }
+
+
+            Text {
+                text:
+                    root.found-albums
+                    + " albums found";
+
+                color:
+                    AudioTheme.text-muted;
+
+                font-size:
+                    AudioTheme.font-body;
+
+                horizontal-alignment: center;
+            }
+        }
+    }
+
+
+    // ========================================================
+    // LISTA DE ÁLBUMES
+    // ========================================================
+
+    if root.state == "list" : Rectangle {
+        vertical-stretch: 1;
+
+        background:
+            AudioTheme.background;
+
+        clip: true;
+
+
+        Flickable {
+            width: 100%;
+            height: 100%;
+
+            viewport-height:
+                albumList.preferred-height;
+
+
+            albumList := VerticalLayout {
+                spacing: 1px;
+
+                padding-top: 4px;
+
+
+                for album in root.albums : Rectangle {
+                    height: 64px;
+
+                    background:
+                        touchArea.has-hover
+                            ? AudioTheme.glass
+                            : AudioTheme.background;
+
+                    animate background {
+                        duration:
+                            AudioTheme.fast;
+                    }
+
+
+                    touchArea := TouchArea {
+                        double-clicked => {
+                            root.album-double-clicked(
+                                album.id
+                            );
+                        }
+                    }
+
+
+                    HorizontalLayout {
+                        padding-left:
+                            AudioTheme.spacing-md;
+
+                        padding-right:
+                            AudioTheme.spacing-md;
+
+                        padding-top:
+                            AudioTheme.spacing-sm;
+
+                        padding-bottom:
+                            AudioTheme.spacing-sm;
+
+                        spacing:
+                            AudioTheme.spacing-md;
+
+
+                        // ====================================
+                        // MINIATURA
+                        // ====================================
+
+                        Rectangle {
+                            width: 48px;
+                            height: 48px;
+
+                            border-radius:
+                                AudioTheme.radius-sm;
+
+                            background:
+                                AudioTheme.surface;
+
+                            border-width: 1px;
+
+                            border-color:
+                                AudioTheme.border;
+
+                            clip: true;
+
+
+                            if album.has_cover : Image {
+                                source: album.cover;
+
+                                width: 100%;
+                                height: 100%;
+
+                                image-fit:
+                                    ImageFit.cover;
+                            }
+
+
+                            if !album.has_cover : Image {
+                                source:
+                                    @image-url(
+                                        "../../data/pictures/slynt-logo-256.png"
+                                    );
+
+                                width: 100%;
+                                height: 100%;
+
+                                image-fit:
+                                    ImageFit.cover;
+
+                                opacity: 0.35;
+                            }
+                        }
+
+
+                        // ====================================
+                        // INFORMACIÓN
+                        // ====================================
+
+                        VerticalLayout {
+                            vertical-stretch: 1;
+
+                            spacing: 2px;
+
+                            alignment: center;
+
+
+                            Text {
+                                text:
+                                    album.artist;
+
+                                color:
+                                    AudioTheme.text-secondary;
+
+                                font-size:
+                                    AudioTheme.font-body;
+
+                                overflow:
+                                    elide;
+                            }
+
+
+                            Text {
+                                text:
+                                    album.title;
+
+                                color:
+                                    AudioTheme.text-primary;
+
+                                font-size:
+                                    AudioTheme.font-title;
+
+                                font-weight: 500;
+
+                                overflow:
+                                    elide;
+                            }
+
+
+                            HorizontalLayout {
+                                spacing: 6px;
+
+
+                                Text {
+                                    text:
+                                        album.year;
+
+                                    color:
+                                        AudioTheme.text-muted;
+
+                                    font-size:
+                                        AudioTheme.font-small;
+                                }
+
+
+                                if album.track-count > 0 : Text {
+                                    text:
+                                        "• "
+                                        + album.track-count
+                                        + " tracks";
+
+                                    color:
+                                        AudioTheme.text-muted;
+
+                                    font-size:
+                                        AudioTheme.font-small;
+                                }
+                            }
+                        }
+
+
+                        // ====================================
+                        // ELIMINAR
+                        // ====================================
+
+                        Rectangle {
+                            width: 28px;
+                            height: 28px;
+
+                            border-radius:
+                                AudioTheme.radius-sm;
+
+                            background:
+                                delete-touch.has-hover
+                                    ? #ff1744
+                                    : transparent;
+
+
+                            Image {
+                                source:
+                                    @image-url(
+                                        "../icons/edit-delete.png"
+                                    );
+
+                                width: 18px;
+                                height: 18px;
+
+                                image-fit:
+                                    ImageFit.contain;
+
+                                colorize:
+                                    delete-touch.has-hover
+                                        ? #ffffff
+                                        : AudioTheme.text-muted;
+
+                                x:
+                                    (parent.width - self.width)
+                                    / 2;
+
+                                y:
+                                    (parent.height - self.height)
+                                    / 2;
+                            }
+
+
+                            delete-touch := TouchArea {
+                                clicked => {
+
+                                    root.confirm-type =
+                                        "album";
+
+                                    root.confirm-album-id =
+                                        album.id;
+
+                                    root.confirm-album-title =
+                                        album.title;
+                                }
+
+                                mouse-cursor: pointer;
+                            }
+                        }
+                    }
+
+
+                    Rectangle {
+                        y:
+                            parent.height - 1px;
+
+                        height: 1px;
+
+                        background:
+                            AudioTheme.border;
+                    }
+                }
+            }
+        }
+    }
+
+
+    // ========================================================
+    // UNAVAILABLE
+    // ========================================================
+
+    if root.state == "unavailable" : Rectangle {
+        vertical-stretch: 1;
+
+        background:
+            AudioTheme.background;
+
+
+        VerticalLayout {
+            alignment: center;
+
+            spacing: 20px;
+
+            padding: 32px;
+
+
+            Text {
+                text: "⚠";
+
+                font-size: 48px;
+
+                color:
+                    AudioTheme.warning;
+
+                horizontal-alignment:
+                    center;
+            }
+
+
+            VerticalLayout {
+                spacing:
+                    AudioTheme.spacing-sm;
+
+                alignment: center;
+
+
+                Text {
+                    text:
+                        "Folder not available";
+
+                    color:
+                        AudioTheme.text-primary;
+
+                    font-size: 15px;
+                    font-weight: 600;
+
+                    horizontal-alignment:
+                        center;
+                }
+
+
+                Text {
+                    text:
+                        "The folder \""
+                        + root.warning-folder
+                        + "\" is not available.";
+
+                    color:
+                        AudioTheme.text-secondary;
+
+                    font-size:
+                        AudioTheme.font-body;
+
+                    horizontal-alignment:
+                        center;
+
+                    wrap:
+                        word-wrap;
+                }
+
+
+                Rectangle {
+                    height: 36px;
+
+                    background:
+                        AudioTheme.surface;
+
+                    border-radius:
+                        AudioTheme.radius-sm;
+
+                    border-width: 1px;
+
+                    border-color:
+                        AudioTheme.border;
+
+
+                    Text {
+                        text:
+                            root.warning-path;
+
+                        color:
+                            AudioTheme.text-muted;
+
+                        font-size:
+                            AudioTheme.font-small;
+
+                        horizontal-alignment:
+                            center;
+
+                        vertical-alignment:
+                            center;
+
+                        overflow:
+                            elide;
+                    }
+                }
+            }
+
+
+            VerticalLayout {
+                spacing:
+                    AudioTheme.spacing-sm;
+
+                alignment: center;
+
+
+                Rectangle {
+                    width: 180px;
+                    height: 36px;
+
+                    background:
+                        AudioTheme.surface;
+
+                    border-radius:
+                        AudioTheme.radius-sm;
+
+                    border-width: 1px;
+
+                    border-color:
+                        AudioTheme.border;
+
+
+                    Text {
+                        text: "Try again";
+
+                        color:
+                            AudioTheme.text-primary;
+
+                        font-size:
+                            AudioTheme.font-body;
+
+                        horizontal-alignment:
+                            center;
+
+                        vertical-alignment:
+                            center;
+                    }
+
+
+                    TouchArea {
+                        clicked => {
+                            root.retry();
+                        }
+
+                        mouse-cursor:
+                            pointer;
+                    }
+                }
+
+
+                Rectangle {
+                    width: 180px;
+                    height: 32px;
+
+                    background:
+                        transparent;
+
+
+                    Text {
+                        text:
+                            "Remove folder";
+
+                        color:
+                            AudioTheme.text-muted;
+
+                        font-size:
+                            AudioTheme.font-body;
+
+                        horizontal-alignment:
+                            center;
+
+                        vertical-alignment:
+                            center;
+                    }
+
+
+                    TouchArea {
+                        clicked => {
+                            root.remove-folder(
+                                root.warning-path
+                            );
+                        }
+
+                        mouse-cursor:
+                            pointer;
+                    }
+                }
+            }
+        }
+    }
+
+
+    // ========================================================
+    // FOOTER
+    // ========================================================
+
+    Rectangle {
+        height: 32px;
+
+        background:
+            AudioTheme.panel;
+
+
+        if root.state == "loading" : HorizontalLayout {
+            padding-left:
+                AudioTheme.spacing-md;
+
+            padding-right:
+                AudioTheme.spacing-md;
+
+
+            Text {
+                text:
+                    "SLYNT • "
+                    + root.found-albums
+                    + " albums";
+
+                color:
+                    AudioTheme.text-muted;
+
+                font-size:
+                    AudioTheme.font-small;
+
+                vertical-alignment:
+                    center;
+            }
+
+
+            Rectangle {
+                horizontal-stretch:
+                    1;
+            }
+
+
+            Rectangle {
+                width: 6px;
+                height: 6px;
+
+                border-radius:
+                    3px;
+
+                background:
+                    AudioTheme.accent;
+            }
+        }
+    }
+}
+
+
+// ============================================================
+// CONFIRM DIALOG
+// ============================================================
+
+if root.confirm-type != "" : Rectangle {
+
+    width: 100%;
+    height: 100%;
+
+    background:
+        #000000aa;
+
+
+    TouchArea {
+        clicked => {
+            root.confirm-no();
+        }
+    }
+
+
+    Rectangle {
+        width: 320px;
+        height: 200px;
+
+        border-radius: 12px;
+
+        background:
+            #1e1e22;
+
+        border-width: 1px;
+        border-color:
+            #2a2a30;
+
+
+        x:
+            (parent.width - self.width) / 2;
+
+        y:
+            (parent.height - self.height) / 2;
+
+
+        VerticalLayout {
+            padding: 20px;
+
+            spacing: 12px;
+
+            alignment: center;
+
+
+            Text {
+                text:
+                    root.confirm-type == "all"
+                        ? "Clear Entire Library?"
+                        : "Remove Album?";
+
+                color: white;
+
+                font-size: 14px;
+
+                font-weight: 700;
+
+                horizontal-alignment:
+                    center;
+            }
+
+
+            Text {
+                text:
+                    root.confirm-type == "all"
+                        ? "Are you absolutely certain you wish to clear your entire library?\n\nYour music files shall remain safely on disk."
+                        : "Are you quite sure you wish to remove \""
+                          + root.confirm-album-title
+                          + "\" from your library?\n\nYour files shall remain untouched on disk.";
+
+                color: #aaa;
+
+                font-size: 11px;
+
+                wrap:
+                    word-wrap;
+
+                horizontal-alignment:
+                    center;
+            }
+
+
+            HorizontalLayout {
+                spacing: 10px;
+
+                alignment: center;
+
+
+                Rectangle {
+                    width: 120px;
+                    height: 36px;
+
+                    border-radius: 8px;
+
+                    background:
+                        cancel.has-hover
+                            ? #2a2a32
+                            : transparent;
+
+                    border-width: 1px;
+
+                    border-color:
+                        #3a3a44;
+
+
+                    Text {
+                        text: "Cancel";
+
+                        color: #ccc;
+
+                        font-size: 12px;
+
+                        font-weight: 600;
+
+                        horizontal-alignment:
+                            center;
+
+                        vertical-alignment:
+                            center;
+                    }
+
+
+                    cancel := TouchArea {
+                        clicked => {
+                            root.confirm-no();
+                        }
+
+                        mouse-cursor:
+                            pointer;
+                    }
+                }
+
+
+                Rectangle {
+                    width: 130px;
+                    height: 36px;
+
+                    border-radius: 8px;
+
+                    background:
+                        ok.has-hover
+                            ? #ff304f
+                            : #ff1744;
+
+
+                    Text {
+                        text:
+                            root.confirm-type == "all"
+                                ? "Clear Library"
+                                : "Remove";
+
+                        color: white;
+
+                        font-size: 12px;
+
+                        font-weight: 600;
+
+                        horizontal-alignment:
+                            center;
+
+                        vertical-alignment:
+                            center;
+                    }
+
+
+                    ok := TouchArea {
+                        clicked => {
+                            root.confirm-yes();
+                        }
+
+                        mouse-cursor:
+                            pointer;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+}

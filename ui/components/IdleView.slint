@@ -1,0 +1,12 @@
+export component IdleView inherits Rectangle {
+    callback open-folder();
+    VerticalLayout { alignment: center; spacing: 14px;
+        Text { text: "♫"; color: #1e2d45; font-size: 80px; horizontal-alignment: center; }
+        Text { text: "No track selected"; color: #e6edf3; font-size: 20px; font-weight: 700; horizontal-alignment: center; }
+        Text { text: "Open a music folder to begin"; color: #8b949e; font-size: 13px; horizontal-alignment: center; }
+        Rectangle { width: 160px; height: 38px; background: #1a2632; border-radius: 8px;
+            Text { text: "Open Folder"; color: #58a6ff; horizontal-alignment: center; vertical-alignment: center; font-weight: 600; }
+            TouchArea { clicked => { root.open-folder(); } }
+        }
+    }
+}

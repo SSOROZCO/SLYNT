@@ -1,0 +1,75 @@
+import { AudioTheme } from "../theme/Theme.slint";
+
+export component RGBLed inherits Rectangle {
+    in property <string> mode; // "dsd" | "hi-res" | "48k" | "off"
+    in property <bool> active: true;
+    in property <length> led-size: 16px;
+
+    width: led-size;
+    height: led-size;
+    border-radius: led-size / 2;
+
+    property <color> led-color:
+        mode == "dsd" ? AudioTheme.dsd :        // #E040FB
+        mode == "hi-res" ? AudioTheme.success : // #55ff7d
+        mode == "48k" ? AudioTheme.accent :     // #5a8fff
+        #2A3441;
+
+    background: active ? led-color : #1E293B;
+    animate background { duration: AudioTheme.normal; }
+
+    // ===== RESPIRACIÓN REAL CON SLINT =====
+    // Dos estados que hacen loop
+    property <bool> breathing: active && mode != "off";
+    property <float> breath: 1.0;
+
+    states [
+        breathe-in when breathing : {
+            breath: 0.55;
+            in { breath: AudioTheme.slow; easing: ease-in-out; }
+        }
+        breathe-out when !breathing : {
+            breath: 1.0;
+        }
+    ]
+
+    // Timer que alterna el estado
+    Timer {
+        interval: 1800ms;
+        running: root.breathing;
+        triggered => {
+            root.breathing = !root.breathing;
+            self.interval = root.breathing ? 1800ms : 1800ms;
+            // truco: al cambiar breathing, cambia el state y anima breath
+            root.breathing = !root.breathing;
+        }
+    }
+
+    // CAPA 1: NÚCLEO
+    Rectangle {
+        width: parent.width * 0.6;
+        height: parent.height * 0.6;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: self.width / 2;
+        background: root.led-color.brighter(0.3);
+        opacity: root.breath;
+    }
+
+    // CAPA 2: HALO EXTERIOR
+    Rectangle {
+        x: -6px; y: -6px;
+        width: parent.width + 12px;
+        height: parent.height + 12px;
+        border-radius: self.width / 2;
+        background: root.led-color;
+        opacity: (1.0 - root.breath) * 0.25;
+        z: -1;
+        drop-shadow-blur: 12px;
+        drop-shadow-color: root.led-color;
+    }
+
+    // BORDE
+    border-width: 1px;
+    border-color: active ? root.led-color : #334155;
+}

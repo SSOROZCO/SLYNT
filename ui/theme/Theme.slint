@@ -1,0 +1,69 @@
+export global AudioTheme {
+    // ===== FONDO - Profundidad macOS =====
+    out property <color> background: #0a1018;
+    out property <color> surface: #121a25;
+    out property <color> panel: #111a25;
+
+    // ===== GLASS - El nuevo estándar SLYNT =====
+    out property <color> glass: #1c2633f0;
+    out property <color> glass-border: #ffffff14;
+    out property <color> glass-hover: #ffffff10;
+    out property <color> glass-pressed: #ffffff08;
+
+    // ===== BORDES - Sutiles, no gritan =====
+    out property <color> border: #ffffff0a;
+    out property <color> border-subtle: #1e2d3d;
+    out property <color> border-strong: #ffffff18;
+
+    // ===== ACENTOS - Un solo azul, como Apple =====
+    out property <color> accent: #5a8fff;
+    out property <color> accent-bg: #3a7bff26;
+    out property <color> accent-border: #5a8fff88;
+    out property <color> accent-glow: #3a7bff55;
+    out property <color> accent-bright: #3a7bff;
+
+    // ===== TEXTO - Jerarquía clara =====
+    out property <color> text: #ffffff;
+    out property <color> text-primary: #e6edf3;
+    out property <color> text-secondary: #a8b3cf;
+    out property <color> text-muted: #7d8590;
+    out property <color> text-faint: #ffffff44;
+
+    // ===== ESTADOS =====
+    out property <color> success: #55ff7d;
+    out property <color> success-bg: #55ff7d22;
+    out property <color> warning: #ffcc44;
+    out property <color> error: #ff6b6b;
+    out property <color> dsd: #E040FB;
+
+    // ===== ANIMACIONES =====
+    out property <duration> fast: 150ms;
+    out property <duration> normal: 220ms;
+    out property <duration> slow: 350ms;
+    out property <easing> easing: ease-in-out;
+
+    // ===== FONTS - Usamos length, no int =====
+    out property <length> font-small: 9px;
+    out property <length> font-body: 11px;
+    out property <length> font-title: 13px;
+    out property <length> font-large: 16px;
+    out property <length> font-xl: 22px;
+
+    // ===== ESPACIADO - Usamos length, no int =====
+    out property <length> spacing-xs: 4px;
+    out property <length> spacing-sm: 8px;
+    out property <length> spacing-md: 12px;
+    out property <length> spacing-lg: 16px;
+    out property <length> spacing-xl: 24px;
+
+    // ===== BORDES REDONDEADOS - Usamos length, no int =====
+    out property <length> radius-sm: 8px;
+    out property <length> radius-md: 12px;
+    out property <length> radius-lg: 16px;
+    out property <length> radius-xl: 20px;
+    out property <length> radius-full: 99px;
+
+    // ===== NUEVO: RADIO POR DEFECTO =====
+    // Así puedes cambiar todo de 12px a 16px con una sola línea
+    out property <length> radius-default: 12px;
+}
