@@ -4,6 +4,8 @@
 
 It is currently in **Beta**.
 
+![SLYNT Screenshot](https://raw.githubusercontent.com/SSOROZCO/files/refs/heads/main/Screenshot_Beta_v0.1.0.avif)
+
 SLYNT is developed primarily for Linux and is designed around local music libraries, with particular attention to high-resolution audio and direct USB DAC playback.
 
 > ⚠️ **Beta software:** SLYNT is usable for everyday listening, but some features and hardware configurations are still under development.
