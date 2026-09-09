@@ -9,3 +9,5 @@ target/
 *.obj
 *.swp
 *~
+_CPack_Packages/
+slynt_*.deb
