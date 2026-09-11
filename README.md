@@ -1,8 +1,8 @@
 # SLYNT
 
-[![Platform](https://img.shields.io/badge/Platform-Astra%20Linux%20SE%20%7C%20Debian%20%7C%20Ubuntu-blue)](https://astralinux.ru/)
+[![Platform](https://img.shields.io/badge/Platform-Astra%20Linux%20SE%20%7C%20Debian%20%7C%20Ubuntu-red)](https://astralinux.ru/)
 [![Language](https://img.shields.io/badge/Language-C%2B%2B%20%2F%20Slint-00599C?logo=c%2B%2B)](https://slint.dev/)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/-Sponsor-green?logo=github)](https://github.com/sponsors/SSOROZCO)
 
 **SLYNT** is an open-source music player focused on high-quality local audio playback and USB DAC output.
 
